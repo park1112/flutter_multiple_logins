@@ -26,6 +26,7 @@ void main() async {
   // Firebase 초기화
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.web,
+    name: 'farm-management', // 고유한 이름 추가
   );
 
   // GetX 컨트롤러 초기화
