@@ -23,8 +23,13 @@ class VerificationCodeScreen extends StatefulWidget {
 
 class _VerificationCodeScreenState extends State<VerificationCodeScreen> {
   final AuthController _authController = Get.find<AuthController>();
-  final TextEditingController _smsCodeController = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+
+  // 컨트롤러 상태 추적
+  bool _isControllerDisposed = false;
+
+  // 사용자 입력을 저장할 로컬 변수
+  String _verificationCode = '';
 
   // 타이머 관련 변수
   Timer? _timer;
@@ -37,7 +42,6 @@ class _VerificationCodeScreenState extends State<VerificationCodeScreen> {
   @override
   void initState() {
     super.initState();
-    // 타이머 시작
     _startTimer();
   }
 
@@ -69,7 +73,6 @@ class _VerificationCodeScreenState extends State<VerificationCodeScreen> {
 
   @override
   void dispose() {
-    _smsCodeController.dispose();
     _stopTimer();
     super.dispose();
   }
@@ -77,242 +80,266 @@ class _VerificationCodeScreenState extends State<VerificationCodeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       appBar: AppBar(
         title: const Text('인증코드 입력', style: TextStyle(color: Colors.white)),
         backgroundColor: AppTheme.primaryColor,
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              const SizedBox(height: 20),
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          bool isSmallScreen = constraints.maxWidth < 600;
+          double horizontalPadding = isSmallScreen ? 24.0 : 40.0;
+          double pinBoxSize = isSmallScreen ? 48.0 : 56.0;
 
-              // 안내 텍스트
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: AppTheme.primaryColor.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: AppTheme.primaryColor.withOpacity(0.3),
-                    width: 1,
-                  ),
+          return GestureDetector(
+            onTap: () => FocusScope.of(context).unfocus(),
+            child: SingleChildScrollView(
+              child: Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: horizontalPadding,
+                  vertical: 24.0,
                 ),
-                child: Row(
-                  children: [
-                    Icon(Icons.message, color: AppTheme.primaryColor),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            '인증번호가 발송되었습니다',
-                            style: TextStyle(
-                              color: AppTheme.primaryColor,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                            ),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      const SizedBox(height: 20),
+                      // 안내 텍스트
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: AppTheme.primaryColor.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: AppTheme.primaryColor.withOpacity(0.3),
+                            width: 1,
                           ),
-                          const SizedBox(height: 4),
-                          Text(
-                            '${widget.phoneNumber}로 발송된 6자리 인증코드를 입력해주세요',
-                            style: TextStyle(
-                              color: AppTheme.textSecondaryColor,
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.message, color: AppTheme.primaryColor),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    '인증번호가 발송되었습니다',
+                                    style: TextStyle(
+                                      color: AppTheme.primaryColor,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: isSmallScreen ? 16 : 18,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    '${widget.phoneNumber}로 발송된 6자리 인증코드를 입력해주세요',
+                                    style: TextStyle(
+                                      color: AppTheme.textSecondaryColor,
+                                      fontSize: isSmallScreen ? 14 : 16,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      const SizedBox(height: 40),
+
+                      // 핀코드 필드의 최대 너비 제한
+                      ConstrainedBox(
+                        constraints: BoxConstraints(
+                          maxWidth: 400, // 웹에서 너무 넓어지지 않도록
+                        ),
+                        child: PinCodeTextField(
+                          appContext: context,
+                          length: 6,
+                          // controller: _smsCodeController,
+                          keyboardType: TextInputType.number,
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          animationType: AnimationType.fade,
+                          autoFocus: true,
+                          pinTheme: PinTheme(
+                            shape: PinCodeFieldShape.box,
+                            borderRadius: BorderRadius.circular(12),
+                            fieldHeight: pinBoxSize,
+                            fieldWidth: pinBoxSize,
+                            activeFillColor: Colors.white,
+                            inactiveFillColor: Colors.white,
+                            selectedFillColor:
+                                AppTheme.primaryColor.withOpacity(0.1),
+                            activeColor: AppTheme.primaryColor,
+                            inactiveColor: Colors.grey.shade300,
+                            selectedColor: AppTheme.primaryColor,
+                            errorBorderColor: Colors.red,
+                            borderWidth: 1.5,
+                          ),
+                          enableActiveFill: true,
+                          cursorColor: AppTheme.primaryColor,
+                          animationDuration: const Duration(milliseconds: 300),
+                          textStyle: TextStyle(
+                            fontSize: isSmallScreen ? 22 : 24,
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.textPrimaryColor,
+                          ),
+                          onChanged: (value) {
+                            // 로컬 변수에 값 저장
+                            _verificationCode = value;
+
+                            if (_errorMessage != null) {
+                              setState(() {
+                                _errorMessage = null;
+                              });
+                            }
+                          },
+                          beforeTextPaste: (text) {
+                            if (text == null) return false;
+                            return RegExp(r'^[0-9]{6}$').hasMatch(text);
+                          },
+                        ),
+                      ),
+
+                      // 오류 메시지 표시
+                      if (_errorMessage != null)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8.0),
+                          child: Text(
+                            _errorMessage!,
+                            style: const TextStyle(
+                              color: Colors.red,
                               fontSize: 14,
                             ),
                           ),
+                        ),
+
+                      const SizedBox(height: 24),
+
+                      // 타이머 표시
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: _isTimerRunning
+                              ? Colors.grey.shade100
+                              : Colors.red.shade50,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.timer,
+                              size: 18,
+                              color: _isTimerRunning
+                                  ? AppTheme.primaryColor
+                                  : Colors.red,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              _isTimerRunning
+                                  ? _formattedTime
+                                  : '인증 시간이 만료되었습니다',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: _isTimerRunning
+                                    ? AppTheme.primaryColor
+                                    : Colors.red,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      const SizedBox(height: 40),
+
+                      // 재요청 & 인증하기 버튼
+                      Row(
+                        children: [
+                          Expanded(
+                            child: CustomButton(
+                              text: '재요청',
+                              onPressed: () {
+                                if (!mounted || _isControllerDisposed) return;
+
+                                setState(() {
+                                  _remainingSeconds = 180;
+                                  _isTimerRunning = true;
+                                  _errorMessage = null;
+                                  _verificationCode = '';
+                                });
+                                _startTimer();
+                                // 재인증 요청 로직 호출
+                                // _requestVerificationCode();
+                              },
+                              isOutlined: true,
+                              backgroundColor: AppTheme.primaryColor,
+                              height: 54,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Obx(() => CustomButton(
+                                  text: '인증하기',
+                                  onPressed: _isTimerRunning &&
+                                          _verificationCode.length == 6
+                                      ? () => _verifyCode()
+                                      : () {},
+                                  isLoading: _authController.isLoading.value,
+                                  backgroundColor: AppTheme.primaryColor,
+                                  height: 54,
+                                )),
+                          ),
                         ],
                       ),
-                    ),
-                  ],
-                ),
-              ),
 
-              const SizedBox(height: 40),
+                      const SizedBox(height: 30),
 
-              // 인증코드 입력 필드
-              PinCodeTextField(
-                appContext: context,
-                length: 6,
-                controller: _smsCodeController,
-                keyboardType: TextInputType.number,
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                animationType: AnimationType.fade,
-                autoFocus: true,
-                pinTheme: PinTheme(
-                  shape: PinCodeFieldShape.box,
-                  borderRadius: BorderRadius.circular(12),
-                  fieldHeight: 56,
-                  fieldWidth: 48,
-                  activeFillColor: Colors.white,
-                  inactiveFillColor: Colors.white,
-                  selectedFillColor: AppTheme.primaryColor.withOpacity(0.1),
-                  activeColor: AppTheme.primaryColor,
-                  inactiveColor: Colors.grey.shade300,
-                  selectedColor: AppTheme.primaryColor,
-                  errorBorderColor: Colors.red,
-                  borderWidth: 1.5,
-                ),
-                enableActiveFill: true,
-                cursorColor: AppTheme.primaryColor,
-                animationDuration: const Duration(milliseconds: 300),
-                textStyle: const TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  color: AppTheme.textPrimaryColor,
-                ),
-                onChanged: (value) {
-                  // 오류 메시지 초기화
-                  if (_errorMessage != null) {
-                    setState(() {
-                      _errorMessage = null;
-                    });
-                  }
-
-                  // 6자리 입력 완료 시 자동 검증
-                  if (value.length == 6) {
-                    // 자동 검증은 선택 사항
-                    // _verifyCode();
-                  }
-                },
-                beforeTextPaste: (text) {
-                  // 붙여넣기 숫자 검증
-                  if (text == null) return false;
-                  return RegExp(r'^[0-9]{6}$').hasMatch(text);
-                },
-                errorAnimationController: null, // 커스텀 오류 애니메이션이 필요한 경우 추가
-                onCompleted: (value) {
-                  // 입력 완료 시 처리 (필요한 경우)
-                },
-              ),
-
-              // 오류 메시지 표시
-              if (_errorMessage != null)
-                Padding(
-                  padding: const EdgeInsets.only(top: 8.0),
-                  child: Text(
-                    _errorMessage!,
-                    style: const TextStyle(
-                      color: Colors.red,
-                      fontSize: 14,
-                    ),
-                  ),
-                ),
-
-              const SizedBox(height: 24),
-
-              // 타이머 표시
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                decoration: BoxDecoration(
-                  color: _isTimerRunning
-                      ? Colors.grey.shade100
-                      : Colors.red.shade50,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.timer,
-                      size: 18,
-                      color:
-                          _isTimerRunning ? AppTheme.primaryColor : Colors.red,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      _isTimerRunning ? _formattedTime : '인증 시간이 만료되었습니다',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: _isTimerRunning
-                            ? AppTheme.primaryColor
-                            : Colors.red,
+                      // 하단 안내 텍스트
+                      Text(
+                        '인증번호가 오지 않나요?',
+                        style: TextStyle(
+                          color: AppTheme.textSecondaryColor,
+                          fontSize: 14,
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 40),
-
-              // 재요청 & 인증하기 버튼
-              Row(
-                children: [
-                  Expanded(
-                    child: CustomButton(
-                      text: '재요청',
-                      onPressed: () {
-                        _smsCodeController.clear();
-                        setState(() {
-                          _remainingSeconds = 180;
-                          _isTimerRunning = true;
-                          _errorMessage = null;
-                        });
-                        _startTimer();
-                        // 재인증 요청 로직 호출
-                        // _requestVerificationCode();
-                      },
-                      isOutlined: true,
-                      backgroundColor: AppTheme.primaryColor,
-                      height: 54,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Obx(() => CustomButton(
-                          text: '인증하기',
-                          onPressed: _isTimerRunning &&
-                                  _smsCodeController.text.length == 6
-                              ? () => _verifyCode()
-                              : () {},
-                          isLoading: _authController.isLoading.value,
-                          backgroundColor: AppTheme.primaryColor,
-                          height: 54,
-                        )),
-                  ),
-                ],
-              ),
-
-              const Spacer(),
-
-              // 하단 안내 텍스트
-              Text(
-                '인증번호가 오지 않나요?',
-                style: TextStyle(
-                  color: AppTheme.textSecondaryColor,
-                  fontSize: 14,
-                ),
-              ),
-              TextButton(
-                onPressed: () {
-                  // 고객센터 안내
-                },
-                child: Text(
-                  '고객센터 문의하기',
-                  style: TextStyle(
-                    color: AppTheme.primaryColor,
-                    fontWeight: FontWeight.bold,
+                      TextButton(
+                        onPressed: () {
+                          // 고객센터 안내
+                        },
+                        child: Text(
+                          '고객센터 문의하기',
+                          style: TextStyle(
+                            color: AppTheme.primaryColor,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      // 키보드 공간 확보
+                      SizedBox(height: isSmallScreen ? 80 : 120),
+                    ],
                   ),
                 ),
               ),
-              const SizedBox(height: 16),
-            ],
-          ),
-        ),
+            ),
+          );
+        },
       ),
     );
   }
 
   void _verifyCode() async {
-    if (_smsCodeController.text.length != 6) {
+    if (!mounted) return;
+
+    final String code = _verificationCode;
+
+    if (code.length != 6) {
       setState(() {
         _errorMessage = '6자리 인증코드를 입력해주세요';
       });
@@ -327,23 +354,35 @@ class _VerificationCodeScreenState extends State<VerificationCodeScreen> {
     }
 
     try {
+      // 로딩 상태 표시
+      setState(() {
+        // 로딩 표시 로직
+      });
+
       // 인증 시도
-      await _authController.verifyPhoneCode(_smsCodeController.text);
-      // 성공 시 타이머 정지
+      await _authController.verifyPhoneCode(code);
+
+      // mounted 체크
+      if (!mounted) return;
+
       _stopTimer();
 
-      // 성공 메시지 및 화면 전환
-      Get.snackbar(
-        '인증 성공',
-        '전화번호 인증이 완료되었습니다.',
-        backgroundColor: Colors.green.shade100,
-        colorText: Colors.green.shade800,
-        snackPosition: SnackPosition.BOTTOM,
-      );
-
-      // 홈 화면 또는 다음 화면으로 이동
-      // Get.offAll(() => HomeScreen());
+      // 안전한 방식으로 상태 업데이트 및 화면 전환
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          Get.snackbar(
+            '인증 성공',
+            '전화번호 인증이 완료되었습니다.',
+            backgroundColor: Colors.green.shade100,
+            colorText: Colors.green.shade800,
+            snackPosition: SnackPosition.BOTTOM,
+          );
+        }
+      });
     } catch (e) {
+      // mounted 체크
+      if (!mounted) return;
+
       setState(() {
         _errorMessage = '유효하지 않은 인증코드입니다. 다시 확인해주세요.';
       });

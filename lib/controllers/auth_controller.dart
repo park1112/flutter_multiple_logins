@@ -1,5 +1,11 @@
+import 'dart:io';
+
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
+import 'package:flutter_naver_login/flutter_naver_login.dart';
 import 'package:get/get.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 
@@ -33,24 +39,30 @@ class AuthController extends GetxController {
     ever(firebaseUser, _setInitialScreen);
   }
 
-  // 초기 화면 설정
+// 초기 화면 설정
   _setInitialScreen(User? user) async {
-    if (user == null) {
-      // 첫 실행 확인
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      bool isFirstRun = prefs.getBool(AppConstants.keyIsFirstRun) ?? true;
+    try {
+      if (user == null) {
+        // 첫 실행 확인
+        SharedPreferences prefs = await SharedPreferences.getInstance();
+        bool isFirstRun = prefs.getBool(AppConstants.keyIsFirstRun) ?? true;
 
-      if (isFirstRun) {
-        Get.offAll(() => SplashScreen());
+        if (isFirstRun) {
+          Get.offAll(() => const SplashScreen());
+        } else {
+          Get.offAll(() => const LoginScreen());
+        }
       } else {
-        Get.offAll(() => LoginScreen());
-      }
-    } else {
-      // 사용자 정보 로드
-      _loadUserData(user.uid);
+        // 사용자 정보 로드
+        await _loadUserData(user.uid);
 
-      // 홈 화면으로 이동
-      Get.offAll(() => HomeScreen());
+        // 홈 화면으로 이동
+        Get.offAll(() => const HomeScreen());
+      }
+    } catch (e) {
+      print('Error in setInitialScreen: $e');
+      // 에러 발생 시 로그인 화면으로 폴백
+      Get.offAll(() => const LoginScreen());
     }
   }
 
@@ -204,22 +216,79 @@ class AuthController extends GetxController {
     }
   }
 
-  // 계정 삭제
+// 계정 삭제
   Future<void> deleteAccount() async {
     try {
       isLoading.value = true;
-      await _authService.deleteAccount();
-      userModel.value = null;
 
-      // SharedPreferences 사용자 데이터 삭제
+      // 사용자 ID 저장 (나중에 사용)
+      final String? userId = firebaseUser.value?.uid;
+
+      if (userId == null) {
+        Get.snackbar('오류', '로그인 정보를 찾을 수 없습니다.');
+        return;
+      }
+
+      // 인증 정보 및 사용자 데이터 삭제
+      await _authService.deleteAccount();
+
+      // 로그인 정보 초기화
+      userModel.value = null;
+      firebaseUser.value = null;
+
+      // SharedPreferences 사용자 데이터 및 토큰 삭제
       SharedPreferences prefs = await SharedPreferences.getInstance();
       await prefs.remove(AppConstants.keyUserData);
 
+      // Firebase 토큰 삭제 시도
+      await FirebaseAuth.instance.signOut();
+
+      // 모든 자동 로그인 정보 삭제
+      await _clearAllAuthTokens();
+
       Get.snackbar('계정 삭제', '계정이 삭제되었습니다.');
+
+      // 로그인 화면으로 이동
+      Get.offAll(() => const LoginScreen());
     } catch (e) {
       Get.snackbar('오류', '계정 삭제 중 오류가 발생했습니다: $e');
     } finally {
       isLoading.value = false;
+    }
+  }
+
+// 모든 인증 토큰 및 자동 로그인 정보 삭제
+  Future<void> _clearAllAuthTokens() async {
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+
+      // 앱 내 저장된 모든 토큰 및 로그인 정보 삭제
+      await prefs.remove(AppConstants.keyUserData);
+      await prefs.remove(AppConstants.keyIsFirstRun);
+
+      // 필요한 경우 추가 토큰 관련 키 삭제
+      // 예: await prefs.remove('auth_token');
+
+      // 소셜 로그인 토큰 삭제
+      try {
+        // Google 로그아웃
+        final GoogleSignIn googleSignIn = GoogleSignIn();
+        await googleSignIn.signOut();
+
+        // Facebook 로그아웃
+        await FacebookAuth.instance.logOut();
+
+        // Naver 로그아웃
+        if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
+          await FlutterNaverLogin.logOut();
+        }
+      } catch (e) {
+        print('소셜 로그인 토큰 삭제 중 오류: $e');
+        // 오류가 있어도 계속 진행
+      }
+    } catch (e) {
+      print('인증 토큰 삭제 중 오류: $e');
+      // 오류가 있어도 계속 진행
     }
   }
 

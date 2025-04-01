@@ -67,34 +67,72 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  // lib/screens/home/home_screen.dart
   Widget _buildHomePage() {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('홈'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () => _authController.signOut(),
-          ),
-        ],
-      ),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(20.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildWelcomeCard(),
-              const SizedBox(height: 30),
-              _buildFeatureSection(),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        bool isSmallScreen = constraints.maxWidth < 600;
+        bool isWebLayout = constraints.maxWidth > 900;
+
+        return Scaffold(
+          appBar: AppBar(
+            title: const Text('홈'),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.logout),
+                onPressed: () => _authController.signOut(),
+              ),
             ],
           ),
-        ),
-      ),
+          body: SingleChildScrollView(
+            child: Center(
+              child: Container(
+                constraints: BoxConstraints(
+                  maxWidth: isWebLayout ? 1200 : double.infinity,
+                ),
+                padding: EdgeInsets.all(isSmallScreen ? 20.0 : 40.0),
+                child: Column(
+                  crossAxisAlignment: isWebLayout
+                      ? CrossAxisAlignment.center
+                      : CrossAxisAlignment.start,
+                  children: [
+                    if (isWebLayout)
+                      // 웹 레이아웃 - 카드와 피쳐 섹션을 나란히 배치
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            flex: 4,
+                            child: _buildWelcomeCard(isSmallScreen),
+                          ),
+                          const SizedBox(width: 30),
+                          Expanded(
+                            flex: 6,
+                            child: _buildFeatureSection(),
+                          ),
+                        ],
+                      )
+                    else
+                      // 모바일 레이아웃 - 카드와 피쳐 섹션을 세로로 배치
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildWelcomeCard(isSmallScreen),
+                          const SizedBox(height: 30),
+                          _buildFeatureSection(),
+                        ],
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 
-  Widget _buildWelcomeCard() {
+  Widget _buildWelcomeCard(bool isSmallScreen) {
     return Obx(() {
       final user = _authController.userModel.value;
 
@@ -129,22 +167,22 @@ class _HomeScreenState extends State<HomeScreen> {
           borderRadius: BorderRadius.circular(15),
         ),
         child: Padding(
-          padding: const EdgeInsets.all(20.0),
+          padding: EdgeInsets.all(isSmallScreen ? 20.0 : 30.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 children: [
                   CircleAvatar(
-                    radius: 30,
+                    radius: isSmallScreen ? 30 : 40,
                     backgroundColor: AppTheme.primaryColor.withOpacity(0.2),
                     backgroundImage: user?.photoURL != null
                         ? NetworkImage(user!.photoURL!)
                         : null,
                     child: user?.photoURL == null
-                        ? const Icon(
+                        ? Icon(
                             Icons.person,
-                            size: 30,
+                            size: isSmallScreen ? 30 : 40,
                             color: AppTheme.primaryColor,
                           )
                         : null,
@@ -156,8 +194,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       children: [
                         Text(
                           '안녕하세요, $userName님!',
-                          style: const TextStyle(
-                            fontSize: 18,
+                          style: TextStyle(
+                            fontSize: isSmallScreen ? 18 : 22,
                             fontWeight: FontWeight.bold,
                             color: AppTheme.textPrimaryColor,
                           ),
@@ -166,7 +204,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         Text(
                           loginMethod,
                           style: TextStyle(
-                            fontSize: 14,
+                            fontSize: isSmallScreen ? 14 : 16,
                             color: Colors.grey.shade600,
                           ),
                         ),
@@ -176,10 +214,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ),
               const SizedBox(height: 20),
-              const Text(
+              Text(
                 '오늘도 좋은 하루 되세요!',
                 style: TextStyle(
-                  fontSize: 16,
+                  fontSize: isSmallScreen ? 16 : 18,
                   color: AppTheme.textSecondaryColor,
                 ),
               ),

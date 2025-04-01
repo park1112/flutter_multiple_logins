@@ -44,12 +44,13 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       appBar: AppBar(
         title: const Text('전화번호 로그인', style: TextStyle(color: Colors.white)),
         backgroundColor: AppTheme.primaryColor,
         iconTheme: const IconThemeData(color: Colors.white),
       ),
-      backgroundColor: Colors.white, // 밝은 배경색 사용
+      backgroundColor: Colors.white,
       body: SafeArea(
         child: Obx(() {
           return Stack(
@@ -70,39 +71,52 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
   }
 
   Widget _buildPhoneLoginContent() {
-    return SingleChildScrollView(
-      child: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 20),
-              const Text(
-                '전화번호 인증',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: AppTheme.textPrimaryColor,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        bool isSmallScreen = constraints.maxWidth < 600;
+
+        return SingleChildScrollView(
+          child: GestureDetector(
+            onTap: () => FocusScope.of(context).unfocus(), // 외부 탭시 키보드 닫기
+            child: Padding(
+              padding: EdgeInsets.all(isSmallScreen ? 20.0 : 40.0),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 20),
+                    Text(
+                      '전화번호 인증',
+                      style: TextStyle(
+                        fontSize: isSmallScreen ? 24 : 28,
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.textPrimaryColor,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      _isCodeSent
+                          ? '인증 코드를 입력해주세요.'
+                          : '전화번호를 입력하면 인증 코드를 보내드립니다.',
+                      style: TextStyle(
+                        fontSize: isSmallScreen ? 16 : 18,
+                        color: AppTheme.textSecondaryColor,
+                      ),
+                    ),
+                    const SizedBox(height: 30),
+                    _isCodeSent
+                        ? _buildVerificationCodeForm()
+                        : _buildPhoneInputForm(),
+                    // 키보드 공간 확보
+                    SizedBox(height: isSmallScreen ? 100 : 150),
+                  ],
                 ),
               ),
-              const SizedBox(height: 10),
-              Text(
-                _isCodeSent ? '인증 코드를 입력해주세요.' : '전화번호를 입력하면 인증 코드를 보내드립니다.',
-                style: const TextStyle(
-                  fontSize: 16,
-                  color: AppTheme.textSecondaryColor,
-                ),
-              ),
-              const SizedBox(height: 30),
-              _isCodeSent
-                  ? _buildVerificationCodeForm()
-                  : _buildPhoneInputForm(),
-            ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 

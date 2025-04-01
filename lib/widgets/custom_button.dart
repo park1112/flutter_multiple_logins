@@ -106,6 +106,7 @@ class CustomButton extends StatelessWidget {
 }
 
 // 소셜 로그인 버튼
+// lib/widgets/custom_button.dart
 class SocialLoginButton extends StatelessWidget {
   final SocialButtonType type;
   final VoidCallback onPressed;
@@ -120,42 +121,54 @@ class SocialLoginButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 50,
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      width: double.infinity,
-      child: ElevatedButton(
-        onPressed: isLoading ? null : onPressed,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: _getButtonColor(),
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        ),
-        child: isLoading
-            ? SizedBox(
-                height: 24,
-                width: 24,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        bool isSmallScreen = constraints.maxWidth < 600;
+
+        return Container(
+          height: isSmallScreen ? 50 : 56,
+          margin: const EdgeInsets.symmetric(vertical: 8),
+          width: double.infinity,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 400),
+            child: ElevatedButton(
+              onPressed: isLoading ? null : onPressed,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _getButtonColor(),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
                 ),
-              )
-            : Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  _getButtonIcon(),
-                  const SizedBox(width: 10),
-                  Text(
-                    _getButtonText(),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
               ),
-      ),
+              child: isLoading
+                  ? const SizedBox(
+                      height: 24,
+                      width: 24,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      ),
+                    )
+                  : Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        _getButtonIcon(),
+                        const SizedBox(width: 10),
+                        Text(
+                          _getButtonText(),
+                          style: TextStyle(
+                            color: type == SocialButtonType.google
+                                ? Colors.black
+                                : Colors.white,
+                            fontSize: isSmallScreen ? 16 : 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -168,7 +181,7 @@ class SocialLoginButton extends StatelessWidget {
       case SocialButtonType.phone:
         return Colors.grey.shade800;
       case SocialButtonType.google:
-        return const Color(0xFFDB4437); // 구글 브랜드 레드 컬러
+        return Colors.white; // 구글 버튼은 흰색 배경
     }
   }
 
@@ -188,37 +201,70 @@ class SocialLoginButton extends StatelessWidget {
   Widget _getButtonIcon() {
     switch (type) {
       case SocialButtonType.naver:
-        return const Text(
-          'N',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-          ),
-        );
-      case SocialButtonType.facebook:
-        return const Icon(
-          Icons.facebook,
-          color: Colors.white,
-          size: 20,
-        );
-      case SocialButtonType.phone:
-        return const Icon(
-          Icons.phone,
-          color: Colors.white,
-          size: 20,
-        );
-      case SocialButtonType.google:
         return Container(
-          padding: const EdgeInsets.all(4),
+          width: 24,
+          height: 24,
           decoration: const BoxDecoration(
             color: Colors.white,
             shape: BoxShape.circle,
           ),
-          child: Image.asset(
-            'assets/icons/google_icon.png', // 구글 아이콘 에셋 필요
-            width: 18,
-            height: 18,
+          child: const Center(
+            child: Text(
+              'N',
+              style: TextStyle(
+                color: AppTheme.naverColor,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        );
+      case SocialButtonType.facebook:
+        return Container(
+          width: 24,
+          height: 24,
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            shape: BoxShape.circle,
+          ),
+          child: const Icon(
+            Icons.facebook,
+            color: AppTheme.facebookColor,
+            size: 16,
+          ),
+        );
+      case SocialButtonType.phone:
+        return Container(
+          width: 24,
+          height: 24,
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            shape: BoxShape.circle,
+          ),
+          child: const Icon(
+            Icons.phone,
+            color: Colors.black,
+            size: 16,
+          ),
+        );
+      case SocialButtonType.google:
+        // G 아이콘 (실제로는 이미지 에셋을 사용하는 것이 좋음)
+        return Container(
+          width: 24,
+          height: 24,
+          decoration: BoxDecoration(
+            color: AppTheme.googleColor,
+            shape: BoxShape.circle,
+          ),
+          child: const Center(
+            child: Text(
+              'G',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         );
     }

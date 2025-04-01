@@ -12,6 +12,7 @@ import 'screens/splash/splash_screen.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/home/home_screen.dart';
 
+// lib/main.dart
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -22,6 +23,14 @@ void main() async {
       statusBarIconBrightness: Brightness.dark,
     ),
   );
+
+  // 반응형 레이아웃을 위한 화면 방향 설정
+  SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown,
+    DeviceOrientation.landscapeLeft,
+    DeviceOrientation.landscapeRight,
+  ]);
 
   // Firebase 초기화
   await Firebase.initializeApp(
@@ -45,6 +54,14 @@ class MyApp extends StatelessWidget {
       darkTheme: AppTheme.darkTheme,
       themeMode: ThemeMode.system,
       debugShowCheckedModeBanner: false,
+      // 반응형 UI를 위한 설정
+      builder: (context, child) {
+        // 텍스트 크기 설정 고정 (접근성 설정에 영향 받지 않도록)
+        return MediaQuery(
+          data: MediaQuery.of(context).copyWith(textScaleFactor: 1.0),
+          child: child!,
+        );
+      },
       home: const SplashWrapper(),
     );
   }
@@ -82,11 +99,11 @@ class _SplashWrapperState extends State<SplashWrapper> {
 
       // 화면 이동
       if (isLoggedIn) {
-        Get.off(() => const HomeScreen());
+        Get.offAll(() => const HomeScreen());
       } else if (isFirstRun) {
-        Get.off(() => const SplashScreen());
+        Get.offAll(() => const SplashScreen());
       } else {
-        Get.off(() => const LoginScreen());
+        Get.offAll(() => const LoginScreen());
       }
     } catch (e) {
       print('App initialization error: $e');

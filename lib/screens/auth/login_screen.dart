@@ -46,6 +46,7 @@ class _LoginScreenState extends State<LoginScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: true, // 키보드가 올라올 때 화면 크기 조정
       body: SafeArea(
         child: Obx(() {
           return Stack(
@@ -66,87 +67,99 @@ class _LoginScreenState extends State<LoginScreen>
   }
 
   Widget _buildLoginContent() {
-    return Padding(
-      padding: const EdgeInsets.all(20.0),
-      child: FadeTransition(
-        opacity: _fadeInAnimation,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            const SizedBox(height: 30),
-            // 앱 로고
-            Container(
-              width: 120,
-              height: 120,
-              decoration: BoxDecoration(
-                color: AppTheme.primaryColor,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: const Icon(
-                Icons.lock_open,
-                color: Colors.white,
-                size: 60,
-              ),
-            ),
-            const SizedBox(height: 30),
-            const Text(
-              '로그인',
-              style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-                color: AppTheme.textPrimaryColor,
-              ),
-            ),
-            const SizedBox(height: 10),
-            const Text(
-              '다양한 방법으로 간편하게 로그인하세요',
-              style: TextStyle(
-                fontSize: 16,
-                color: AppTheme.textSecondaryColor,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 50),
-            // 소셜 로그인 버튼들
-            SocialLoginButton(
-              type: SocialButtonType.naver,
-              onPressed: _handleNaverLogin,
-              isLoading: _authController.isLoading.value,
-            ),
-            SocialLoginButton(
-              type: SocialButtonType.facebook,
-              onPressed: _handleFacebookLogin,
-              isLoading: _authController.isLoading.value,
-            ),
-            SocialLoginButton(
-              type: SocialButtonType.phone,
-              onPressed: _handlePhoneLogin,
-              isLoading: _authController.isLoading.value,
-            ),
-            SocialLoginButton(
-              type: SocialButtonType.google,
-              onPressed: _handleGoogleLogin,
-              isLoading: _authController.isLoading.value,
-            ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // 화면 크기에 따라 다른 레이아웃 적용
+        bool isSmallScreen = constraints.maxWidth < 600;
 
-            const SizedBox(height: 20),
-            // 앱 정보
-            const Expanded(
-              child: Align(
-                alignment: Alignment.bottomCenter,
-                child: Text(
-                  '© 2025 snpsystem',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey,
-                  ),
+        return SingleChildScrollView(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              minHeight: constraints.maxHeight,
+            ),
+            child: Padding(
+              padding: EdgeInsets.all(isSmallScreen ? 20.0 : 40.0),
+              child: FadeTransition(
+                opacity: _fadeInAnimation,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    const SizedBox(height: 30),
+                    // 앱 로고
+                    Container(
+                      width: isSmallScreen ? 120 : 160,
+                      height: isSmallScreen ? 120 : 160,
+                      decoration: BoxDecoration(
+                        color: AppTheme.primaryColor,
+                        borderRadius:
+                            BorderRadius.circular(isSmallScreen ? 20 : 30),
+                      ),
+                      child: Icon(
+                        Icons.lock_open,
+                        color: Colors.white,
+                        size: isSmallScreen ? 60 : 80,
+                      ),
+                    ),
+                    const SizedBox(height: 30),
+                    Text(
+                      '로그인',
+                      style: TextStyle(
+                        fontSize: isSmallScreen ? 28 : 36,
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.textPrimaryColor,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      '다양한 방법으로 간편하게 로그인하세요',
+                      style: TextStyle(
+                        fontSize: isSmallScreen ? 16 : 18,
+                        color: AppTheme.textSecondaryColor,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 50),
+                    // 소셜 로그인 버튼들
+                    SocialLoginButton(
+                      type: SocialButtonType.google,
+                      onPressed: _handleGoogleLogin,
+                      isLoading: _authController.isLoading.value,
+                    ),
+                    SocialLoginButton(
+                      type: SocialButtonType.naver,
+                      onPressed: _handleNaverLogin,
+                      isLoading: _authController.isLoading.value,
+                    ),
+                    SocialLoginButton(
+                      type: SocialButtonType.facebook,
+                      onPressed: _handleFacebookLogin,
+                      isLoading: _authController.isLoading.value,
+                    ),
+                    SocialLoginButton(
+                      type: SocialButtonType.phone,
+                      onPressed: _handlePhoneLogin,
+                      isLoading: _authController.isLoading.value,
+                    ),
+                    const SizedBox(height: 20),
+                    // 앱 정보
+                    Padding(
+                      padding: EdgeInsets.only(bottom: isSmallScreen ? 20 : 40),
+                      child: const Text(
+                        '© 2025 snpsystem',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 
