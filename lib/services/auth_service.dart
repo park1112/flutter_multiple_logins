@@ -1,5 +1,7 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
+import 'package:flutter_login_template/config/constants.dart';
 import 'package:flutter_naver_login/flutter_naver_login.dart';
 import '../models/user_model.dart';
 import 'firestore_service.dart';
@@ -11,6 +13,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirestoreService _firestoreService = FirestoreService();
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseStorage _storage = FirebaseStorage.instance;
 
   // 현재 사용자
@@ -377,45 +380,83 @@ class AuthService {
   }
 
   // 계정 삭제
-  Future<void> deleteAccount() async {
+  Future<void> deleteUser(String uid) async {
     try {
-      User? user = _auth.currentUser;
-      if (user != null) {
-        final String uid = user.uid;
-
-        // 1. Firestore에서 사용자 정보 삭제
-        await _firestoreService.deleteUser(uid);
-
-        // 2. Storage에서 사용자 관련 파일 삭제 (필요한 경우)
-        try {
-          // 프로필 이미지 등 사용자 관련 파일 삭제
-          await _storage.ref('profile_images/$uid.jpg').delete();
-        } catch (e) {
-          // 파일이 없거나 삭제 실패해도 계속 진행
-          print('Storage 파일 삭제 중 오류: $e');
-        }
-
-        // 3. Authentication에서 계정 삭제
-        try {
-          await user.delete();
-        } catch (authError) {
-          if (authError is FirebaseAuthException) {
-            if (authError.code == 'requires-recent-login') {
-              // 재인증 필요 시 로그아웃 처리
-              await signOut();
-              throw Exception('계정 삭제를 위해 재로그인이 필요합니다.');
-            }
-          }
-          throw authError; // 다른 오류는 상위로 전달
-        }
-
-        // 4. 모든 토큰 및 자격 증명 삭제
-        await _auth.signOut();
-      } else {
-        throw Exception('로그인된 사용자가 없습니다.');
+      // 1. 유효한 UID 검증
+      if (uid.isEmpty) {
+        throw Exception("유효하지 않은 사용자 ID입니다.");
       }
+
+      // 2. Firestore에서 사용자 문서 가져오기
+      final userDoc = await _firestore
+          .collection(AppConstants.usersCollection)
+          .doc(uid)
+          .get();
+
+      if (!userDoc.exists) {
+        throw Exception("해당 ID의 사용자가 존재하지 않습니다.");
+      }
+
+      // 사용자 데이터 가져오기
+      final Map<String, dynamic>? userData =
+          userDoc.data() as Map<String, dynamic>?;
+
+      // 3. 프로필 이미지 삭제 처리: 사용자 데이터에 photoURL이 있을 경우에만 삭제 시도
+      if (userData != null &&
+          userData.containsKey("photoURL") &&
+          (userData["photoURL"]?.toString().isNotEmpty ?? false)) {
+        try {
+          final storageRef = _storage.ref('profile_images/$uid.jpg');
+          await storageRef.delete();
+          print('프로필 이미지가 성공적으로 삭제되었습니다.');
+        } on FirebaseException catch (e) {
+          if (e.code == 'object-not-found') {
+            print('프로필 이미지 파일이 존재하지 않아 삭제를 건너뜁니다.');
+          } else {
+            print('프로필 이미지 삭제 중 오류: $e');
+          }
+        }
+      } else {
+        print('사용자 정보에 프로필 이미지 URL이 없으므로, 이미지 삭제를 건너뜁니다.');
+      }
+
+      // 4. 사용자 데이터를 백업 컬렉션(deleted_users)에 저장 (삭제 시간 추가)
+      if (userData != null) {
+        userData["deletedAt"] = FieldValue.serverTimestamp();
+        await _firestore.collection("deleted_users").doc(uid).set(userData);
+        print('사용자 데이터가 백업 컬렉션(deleted_users)에 저장되었습니다.');
+      }
+
+      // 5. Firestore에서 사용자 문서 삭제
+      await _firestore
+          .collection(AppConstants.usersCollection)
+          .doc(uid)
+          .delete();
+      print('Firestore에서 사용자 데이터가 삭제되었습니다.');
+
+      // 6. Firebase Auth 사용자 삭제 시도 (선택 사항)
+      try {
+        User? currentUser = FirebaseAuth.instance.currentUser;
+        if (currentUser != null && currentUser.uid == uid) {
+          await currentUser.delete();
+          print('Firebase Auth 사용자 계정이 삭제되었습니다.');
+        }
+      } catch (authError) {
+        if (authError is FirebaseAuthException &&
+            authError.code == 'requires-recent-login') {
+          throw Exception("계정 삭제를 위해 재로그인이 필요합니다.");
+        } else {
+          print('Firebase Auth 사용자 삭제 중 오류: $authError');
+        }
+      }
+
+      // 7. 로그아웃 및 로그인 관련 토큰 삭제 처리
+      await FirebaseAuth.instance.signOut();
+      print('사용자가 로그아웃되었습니다.');
+      // 필요 시 SharedPreferences나 기타 저장소에 저장된 토큰도 삭제하세요.
+      // 예: await SharedPreferences.getInstance().then((prefs) => prefs.clear());
     } catch (e) {
-      print('Delete account error: $e');
+      print('사용자 삭제 중 오류 발생: $e');
       rethrow;
     }
   }

@@ -145,12 +145,12 @@ class FirestoreService {
 // 사용자 삭제 - 개선된 예외 처리
   Future<void> deleteUser(String uid) async {
     try {
-      // 1. 유효한 UID 검증
+      // 1. UID 검증
       if (uid.isEmpty) {
         throw Exception("유효하지 않은 사용자 ID입니다.");
       }
 
-      // 2. 사용자 존재 여부 확인
+      // 2. Firestore에서 사용자 문서 존재 여부 확인
       final docSnapshot = await _firestore
           .collection(AppConstants.usersCollection)
           .doc(uid)
@@ -160,31 +160,26 @@ class FirestoreService {
         throw Exception("해당 ID의 사용자가 존재하지 않습니다.");
       }
 
-      // 3. 프로필 이미지 삭제 시도
-      try {
-        // 이미지 참조 가져오기
-        final ref = _storage.ref('profile_images/$uid.jpg');
-
-        // 이미지가 실제로 존재하는지 확인 (getMetadata 호출은 존재하지 않으면 예외 발생)
+      // 3. 사용자 정보에서 프로필 이미지 URL 확인
+      final data = docSnapshot.data();
+      if (data != null &&
+          data.containsKey('photoURL') &&
+          data['photoURL'] != null &&
+          data['photoURL'].toString().isNotEmpty) {
+        // photoURL이 있으면 파일도 삭제 시도
         try {
-          await ref.getMetadata();
-          // 이미지가 있으면 삭제
-          await ref.delete();
+          final originalRef = _storage.ref('profile_images/$uid.jpg');
+          await originalRef.delete();
           print('프로필 이미지가 성공적으로 삭제되었습니다.');
-        } catch (metadataError) {
-          // object-not-found 오류인 경우 정상적으로 처리 (이미지가 없는 경우)
-          if (metadataError is FirebaseException &&
-              metadataError.code == 'object-not-found') {
+        } on FirebaseException catch (e) {
+          if (e.code == 'object-not-found') {
             print('삭제할 프로필 이미지가 없습니다.');
           } else {
-            // 다른 유형의 오류는 로깅
-            print('프로필 이미지 메타데이터 확인 중 오류: $metadataError');
+            print('프로필 이미지 삭제 중 오류: $e');
           }
         }
-      } catch (imageError) {
-        // 이미지 삭제 중 발생한 모든 예외 처리
-        print('프로필 이미지 삭제 중 오류: $imageError');
-        // 이미지 삭제 실패해도 계속 진행
+      } else {
+        print('사용자 정보에 프로필 이미지 URL이 없습니다. 파일 삭제를 건너뜁니다.');
       }
 
       // 4. Firestore에서 사용자 정보 삭제
@@ -195,7 +190,6 @@ class FirestoreService {
             .delete();
         print('Firestore에서 사용자 데이터가 성공적으로 삭제되었습니다.');
       } catch (firestoreError) {
-        // Firestore 관련 오류 처리
         if (firestoreError is FirebaseException) {
           if (firestoreError.code == 'not-found') {
             print('삭제할 사용자 문서가 이미 존재하지 않습니다.');
@@ -209,7 +203,7 @@ class FirestoreService {
         }
       }
 
-      // 5. 인증 시스템에서 사용자 삭제 (선택적, AuthService에서 처리할 수도 있음)
+      // 5. Firebase 인증 시스템에서 사용자 삭제 (필요한 경우)
       try {
         User? currentUser = FirebaseAuth.instance.currentUser;
         if (currentUser != null && currentUser.uid == uid) {
@@ -217,9 +211,7 @@ class FirestoreService {
           print('Firebase 인증에서 사용자가 성공적으로 삭제되었습니다.');
         }
       } catch (authError) {
-        // 인증 관련 오류 처리
         print('Firebase 인증에서 사용자 삭제 중 오류: $authError');
-        // 재인증이 필요한 경우
         if (authError is FirebaseAuthException &&
             authError.code == 'requires-recent-login') {
           throw Exception("계정 삭제를 위해 재로그인이 필요합니다.");
@@ -227,13 +219,16 @@ class FirestoreService {
       }
     } catch (e) {
       print('사용자 삭제 중 오류 발생: $e');
-      rethrow; // 상위 호출자에게 예외 전달
+      rethrow;
     }
   }
 
   Future<UserModel?> getUser(String uid) async {
     try {
-      final doc = await _firestore.collection('users').doc(uid).get();
+      final doc = await _firestore
+          .collection(AppConstants.usersCollection)
+          .doc(uid)
+          .get();
       if (doc.exists) {
         return UserModel.fromFirestore(doc);
       }

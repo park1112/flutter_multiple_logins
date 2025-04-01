@@ -69,6 +69,9 @@ class AuthController extends GetxController {
   // Firestore에서 사용자 정보 로드
   Future<void> _loadUserData(String uid) async {
     try {
+      // 사용자 정보 로드 전 짧은 지연 추가 (Firestore 저장 완료 대기)
+      await Future.delayed(const Duration(milliseconds: 500));
+
       UserModel? userData = await _firestoreService.getUser(uid);
       if (userData != null) {
         userModel.value = userData;
@@ -221,34 +224,34 @@ class AuthController extends GetxController {
     try {
       isLoading.value = true;
 
-      // 사용자 ID 저장 (나중에 사용)
+      // 1. 사용자 ID 확인
       final String? userId = firebaseUser.value?.uid;
-
       if (userId == null) {
         Get.snackbar('오류', '로그인 정보를 찾을 수 없습니다.');
         return;
       }
 
-      // 인증 정보 및 사용자 데이터 삭제
-      await _authService.deleteAccount();
+      // 2. 인증 정보 및 사용자 데이터 삭제 (FirestoreService.deleteUser 내부에서
+      //    프로필 이미지 삭제(삭제 보관함 처리)와 백업 저장이 진행됨)
+      await _authService.deleteUser(userId);
 
-      // 로그인 정보 초기화
+      // 3. 앱 내 사용자 정보 초기화
       userModel.value = null;
       firebaseUser.value = null;
-
-      // SharedPreferences 사용자 데이터 및 토큰 삭제
       SharedPreferences prefs = await SharedPreferences.getInstance();
       await prefs.remove(AppConstants.keyUserData);
 
-      // Firebase 토큰 삭제 시도
-      await FirebaseAuth.instance.signOut();
+      // 4. Firebase 인증 로그아웃 (예외 발생 시 catch하여 무시)
+      try {
+        await FirebaseAuth.instance.signOut();
+      } catch (signOutError) {
+        print('Firebase signOut error (무시): $signOutError');
+      }
 
-      // 모든 자동 로그인 정보 삭제
+      // 5. 모든 인증 토큰 및 자동 로그인 정보 삭제
       await _clearAllAuthTokens();
 
       Get.snackbar('계정 삭제', '계정이 삭제되었습니다.');
-
-      // 로그인 화면으로 이동
       Get.offAll(() => const LoginScreen());
     } catch (e) {
       Get.snackbar('오류', '계정 삭제 중 오류가 발생했습니다: $e');
