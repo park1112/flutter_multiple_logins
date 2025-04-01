@@ -173,6 +173,18 @@ class AuthController extends GetxController {
     }
   }
 
+  // 구글 로그인
+  Future<void> signInWithGoogle() async {
+    try {
+      isLoading.value = true;
+      await _authService.signInWithGoogle();
+    } catch (e) {
+      Get.snackbar('로그인 오류', '구글 로그인에 실패했습니다: $e');
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
   // 로그아웃
   Future<void> signOut() async {
     try {

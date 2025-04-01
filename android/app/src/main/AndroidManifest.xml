@@ -24,13 +24,10 @@
         </activity>
         
         <!-- Facebook 메타데이터 추가 -->
-        <meta-data android:name="com.facebook.sdk.ApplicationId" android:value="@string/981820900769627"/>
-        <meta-data android:name="com.facebook.sdk.ClientToken" android:value="@string/324c786f9f340871a3bacea093f4751c"/>
-        
-        <!-- Facebook 활동 추가 -->
-        <activity android:name="com.facebook.FacebookActivity"
-            android:configChanges="keyboard|keyboardHidden|screenLayout|screenSize|orientation"
-            android:label="@string/farm-management" />
+        <meta-data android:name="com.facebook.sdk.ApplicationId" android:value="981820900769627"/>  
+        <meta-data android:name="com.facebook.sdk.ClientToken" android:value="324c786f9f340871a3bacea093f4751c"/>
+        <activity android:name="com.facebook.FacebookActivity" android:label="farm-management" />
+
         <activity
             android:name="com.facebook.CustomTabActivity"
             android:exported="true">
@@ -42,23 +39,16 @@
             </intent-filter>
         </activity>
 
-        <!-- 네이버 활동 추가 -->
-         <meta-data
+      <!-- 네이버 활동 설정 수정 -->
+        <meta-data
             android:name="com.naver.sdk.clientId"
-            android:value="@string/IMwR6HhF_WSyvR_c0PoS" />
+            android:value="@string/naver_client_id" />
         <meta-data
             android:name="com.naver.sdk.clientSecret"
-            android:value="@string/4vgitNloaJ" />
+            android:value="@string/naver_client_secret" />
         <meta-data
             android:name="com.naver.sdk.clientName"
-            android:value="@string/farm-management" />
-        
-        <!-- 네이버 활동 추가 -->
-        <activity
-            android:name="com.naver.sdk.auth.NaverLoginActivity"
-            android:exported="true"
-            android:theme="@style/AppTheme.NoActionBar">
-        </activity>
+            android:value="@string/naver_client_name" />
 
         <meta-data
             android:name="flutterEmbedding"

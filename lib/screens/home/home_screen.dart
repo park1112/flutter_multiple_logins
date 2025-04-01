@@ -115,6 +115,9 @@ class _HomeScreenState extends State<HomeScreen> {
           case LoginType.phone:
             loginMethod = '전화번호로 로그인됨';
             break;
+          case LoginType.google:
+            loginMethod = '구글 계정으로 로그인됨';
+            break;
           default:
             loginMethod = '로그인됨';
         }

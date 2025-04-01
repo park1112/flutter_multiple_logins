@@ -48,6 +48,7 @@ dependencies:
   # Social Login
   flutter_facebook_auth: ^7.1.1
   flutter_naver_login: ^2.0.0
+  google_sign_in: ^6.1.4  # 구글 로그인을 위한 패키지
 
   # UI
   flutter_svg: ^2.0.15
@@ -61,8 +62,8 @@ dependencies:
   shared_preferences: ^2.5.2
   intl_phone_number_input: ^0.7.4
   uuid: ^4.3.3
-  
-  
+
+
 
 
 dev_dependencies:

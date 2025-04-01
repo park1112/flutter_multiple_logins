@@ -110,141 +110,99 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // 개선된 전화번호 입력 필드
+        // 전화번호 입력 필드
         Container(
           decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
+            color: Colors.grey.shade50,
+            borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: _phoneError != null ? Colors.red : Colors.grey.shade300,
+              color: _phoneError != null ? Colors.red : Colors.grey.shade200,
               width: 1.5,
             ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.grey.withOpacity(0.1),
-                spreadRadius: 1,
-                blurRadius: 3,
-                offset: const Offset(0, 1),
-              ),
-            ],
           ),
-          child: Column(
-            children: [
-              // 커스텀 전화번호 입력 필드
-              Row(
-                children: [
-                  // 국가 코드 부분
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 14),
-                    decoration: BoxDecoration(
-                      border: Border(
-                        right: BorderSide(
-                          color: Colors.grey.shade300,
-                          width: 1.5,
-                        ),
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        // 한국 국기 아이콘
-                        Container(
-                          width: 24,
-                          height: 24,
-                          decoration: const BoxDecoration(
-                            image: DecorationImage(
-                              image: NetworkImage(
-                                  'https://flagcdn.com/w40/kr.png'),
-                              fit: BoxFit.cover,
-                            ),
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        const Text(
-                          '+82',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: AppTheme.textPrimaryColor,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  // 전화번호 입력 필드
-                  Expanded(
-                    child: TextFormField(
-                      controller: _formattedPhoneController,
-                      keyboardType: TextInputType.phone,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        color: AppTheme.textPrimaryColor,
-                      ),
-                      decoration: InputDecoration(
-                        hintText: '010-1234-5678',
-                        hintStyle: TextStyle(
-                          color: Colors.grey.shade400,
-                          fontSize: 16,
-                        ),
-                        contentPadding:
-                            const EdgeInsets.symmetric(horizontal: 16),
-                        border: InputBorder.none,
-                        errorStyle: const TextStyle(height: 0),
-                      ),
-                      inputFormatters: [
-                        FilteringTextInputFormatter.digitsOnly,
-                        LengthLimitingTextInputFormatter(11),
-                        _KoreanPhoneNumberFormatter(),
-                      ],
-                      onChanged: (value) {
-                        // 하이픈 제거한 값 저장
-                        _rawPhoneNumber = value.replaceAll('-', '');
-
-                        // 전화번호 객체 업데이트 (PhoneNumber와 동기화)
-                        _phoneNumber = PhoneNumber(
-                          phoneNumber:
-                              '+82${_rawPhoneNumber.startsWith('0') ? _rawPhoneNumber.substring(1) : _rawPhoneNumber}',
-                          isoCode: 'KR',
-                          dialCode: '+82',
-                        );
-
-                        // _phoneController도 업데이트 (기존 로직과 호환)
-                        _phoneController.text = _rawPhoneNumber;
-
-                        // 오류 상태 초기화
-                        if (_phoneError != null) {
-                          setState(() {
-                            _phoneError = null;
-                          });
-                        }
-                      },
-                    ),
-                  ),
-                ],
+          child: TextFormField(
+            controller: _formattedPhoneController,
+            keyboardType: TextInputType.phone,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w500,
+              color: AppTheme.textPrimaryColor,
+              letterSpacing: 1.2,
+            ),
+            decoration: InputDecoration(
+              prefixIcon: const Icon(
+                Icons.phone_android,
+                color: AppTheme.primaryColor,
               ),
+              hintText: '010-0000-0000',
+              hintStyle: TextStyle(
+                color: Colors.grey.shade400,
+                fontSize: 16,
+                letterSpacing: 1.2,
+              ),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 20,
+                vertical: 16,
+              ),
+              border: InputBorder.none,
+              errorStyle: const TextStyle(height: 0),
+            ),
+            inputFormatters: [
+              FilteringTextInputFormatter.digitsOnly,
+              LengthLimitingTextInputFormatter(11),
+              _KoreanPhoneNumberFormatter(),
             ],
+            onChanged: (value) {
+              _rawPhoneNumber = value.replaceAll('-', '');
+              _phoneNumber = PhoneNumber(
+                phoneNumber:
+                    '+82${_rawPhoneNumber.startsWith('0') ? _rawPhoneNumber.substring(1) : _rawPhoneNumber}',
+                isoCode: 'KR',
+                dialCode: '+82',
+              );
+              _phoneController.text = _rawPhoneNumber;
+
+              if (_phoneError != null) {
+                setState(() {
+                  _phoneError = null;
+                });
+              }
+            },
           ),
         ),
-        // 오류 메시지 표시
+
+        // 오류 메시지
         if (_phoneError != null)
           Padding(
             padding: const EdgeInsets.only(top: 8, left: 12),
-            child: Text(
-              _phoneError!,
-              style: const TextStyle(
-                color: Colors.red,
-                fontSize: 12,
-              ),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.error_outline,
+                  size: 14,
+                  color: Colors.red,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  _phoneError!,
+                  style: const TextStyle(
+                    color: Colors.red,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
             ),
           ),
-        const SizedBox(height: 30),
-        // 기존 버튼 유지
+
+        const SizedBox(height: 24),
+
+        // 인증 코드 받기 버튼
         CustomButton(
           text: '인증 코드 받기',
           onPressed: _requestVerificationCode,
           isLoading: _authController.isLoading.value,
-          backgroundColor: AppTheme.primaryColor, // 색상 명시적 지정
+          backgroundColor: AppTheme.primaryColor,
+          height: 56,
         ),
       ],
     );

@@ -6,6 +6,7 @@ enum SocialButtonType {
   naver,
   facebook,
   phone,
+  google,
 }
 
 // 일반 커스텀 버튼
@@ -166,6 +167,8 @@ class SocialLoginButton extends StatelessWidget {
         return AppTheme.facebookColor;
       case SocialButtonType.phone:
         return Colors.grey.shade800;
+      case SocialButtonType.google:
+        return const Color(0xFFDB4437); // 구글 브랜드 레드 컬러
     }
   }
 
@@ -177,6 +180,8 @@ class SocialLoginButton extends StatelessWidget {
         return '페이스북으로 로그인';
       case SocialButtonType.phone:
         return '전화번호로 로그인';
+      case SocialButtonType.google:
+        return '구글로 로그인';
     }
   }
 
@@ -202,6 +207,19 @@ class SocialLoginButton extends StatelessWidget {
           Icons.phone,
           color: Colors.white,
           size: 20,
+        );
+      case SocialButtonType.google:
+        return Container(
+          padding: const EdgeInsets.all(4),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            shape: BoxShape.circle,
+          ),
+          child: Image.asset(
+            'assets/icons/google_icon.png', // 구글 아이콘 에셋 필요
+            width: 18,
+            height: 18,
+          ),
         );
     }
   }

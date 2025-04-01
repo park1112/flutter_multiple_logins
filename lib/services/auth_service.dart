@@ -5,6 +5,7 @@ import '../models/user_model.dart';
 import 'firestore_service.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'dart:io' show Platform;
+import 'package:google_sign_in/google_sign_in.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -35,13 +36,6 @@ class AuthService {
         final NaverAccessToken token =
             await FlutterNaverLogin.currentAccessToken;
 
-        // 커스텀 토큰 생성을 위한 Firebase Function 호출 (서버 측 구현 필요)
-        // 여기서는 서버에 HTTP 요청을 보내는 코드가 필요함
-        // 이 예시에서는 직접 Firebase Function URL을 호출한다고 가정
-
-        // 실제 구현에서는 Firebase Function에서 받은 커스텀 토큰을 사용
-        // 이 예시에서는 테스트용 더미 코드를 넣겠습니다
-
         // 네이버 사용자 프로필 정보 가져오기
         NaverAccountResult account = await FlutterNaverLogin.currentAccount();
 
@@ -69,13 +63,13 @@ class AuthService {
       try {
         userCredential = await _auth.signInWithEmailAndPassword(
           email: '${account.email}',
-          password: 'naver_auth_' + account.id, // 실제 구현에서는 이렇게 하지 않음
+          password: 'naver_auth_${account.id}', // 실제 구현에서는 이렇게 하지 않음
         );
       } catch (e) {
         // 사용자가 없으면 새로 생성
         userCredential = await _auth.createUserWithEmailAndPassword(
           email: '${account.email}',
-          password: 'naver_auth_' + account.id, // 실제 구현에서는 이렇게 하지 않음
+          password: 'naver_auth_${account.id}', // 실제 구현에서는 이렇게 하지 않음
         );
       }
 
@@ -266,6 +260,80 @@ class AuthService {
     }
   }
 
+  // 구글 로그인
+  Future<UserCredential?> signInWithGoogle() async {
+    try {
+      // 구글 로그인 초기화
+      final GoogleSignIn googleSignIn = GoogleSignIn();
+
+      // 플랫폼 확인 및 적절한 로그인 방식 적용
+      if (kIsWeb) {
+        // 웹용 구글 로그인
+        GoogleAuthProvider googleProvider = GoogleAuthProvider();
+        UserCredential userCredential =
+            await _auth.signInWithPopup(googleProvider);
+
+        // Firestore에 사용자 정보 저장
+        if (userCredential.user != null) {
+          await _firestoreService.createOrUpdateUser(
+            UserModel(
+              uid: userCredential.user!.uid,
+              name: userCredential.user!.displayName,
+              email: userCredential.user!.email,
+              photoURL: userCredential.user!.photoURL,
+              loginType: LoginType.google,
+              lastLogin: DateTime.now(),
+            ),
+          );
+        }
+
+        return userCredential;
+      } else if (Platform.isAndroid || Platform.isIOS) {
+        // 모바일용 구글 로그인
+        final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
+
+        if (googleUser == null) {
+          return null; // 사용자가 로그인 취소
+        }
+
+        // 인증 정보 얻기
+        final GoogleSignInAuthentication googleAuth =
+            await googleUser.authentication;
+
+        // 구글 인증 정보 생성
+        final credential = GoogleAuthProvider.credential(
+          accessToken: googleAuth.accessToken,
+          idToken: googleAuth.idToken,
+        );
+
+        // Firebase에 로그인
+        UserCredential userCredential =
+            await _auth.signInWithCredential(credential);
+
+        // Firestore에 사용자 정보 저장
+        if (userCredential.user != null) {
+          await _firestoreService.createOrUpdateUser(
+            UserModel(
+              uid: userCredential.user!.uid,
+              name: userCredential.user!.displayName,
+              email: userCredential.user!.email,
+              photoURL: userCredential.user!.photoURL,
+              loginType: LoginType.google,
+              lastLogin: DateTime.now(),
+            ),
+          );
+        }
+
+        return userCredential;
+      } else {
+        throw '지원하지 않는 플랫폼입니다.';
+      }
+    } catch (e) {
+      print('Google sign in error: $e');
+      rethrow;
+    }
+  }
+
   // 로그아웃
   Future<void> signOut() async {
     try {
@@ -278,10 +346,13 @@ class AuthService {
           try {
             if (userModel?.loginType == LoginType.naver) {
               await FlutterNaverLogin.logOut();
+            } else if (userModel?.loginType == LoginType.google) {
+              // 구글 로그아웃 추가
+              await GoogleSignIn().signOut();
             }
           } catch (e) {
-            print('Naver logout error: $e');
-            // 네이버 로그아웃 실패해도 계속 진행
+            print('Social logout error: $e');
+            // 소셜 로그아웃 실패해도 계속 진행
           }
         }
 

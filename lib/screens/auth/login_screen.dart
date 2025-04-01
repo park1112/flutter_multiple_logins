@@ -124,13 +124,19 @@ class _LoginScreenState extends State<LoginScreen>
               onPressed: _handlePhoneLogin,
               isLoading: _authController.isLoading.value,
             ),
+            SocialLoginButton(
+              type: SocialButtonType.google,
+              onPressed: _handleGoogleLogin,
+              isLoading: _authController.isLoading.value,
+            ),
+
             const SizedBox(height: 20),
             // 앱 정보
             const Expanded(
               child: Align(
                 alignment: Alignment.bottomCenter,
                 child: Text(
-                  '© 2023 Multi Login Template',
+                  '© 2025 snpsystem',
                   style: TextStyle(
                     fontSize: 12,
                     color: Colors.grey,
@@ -162,5 +168,13 @@ class _LoginScreenState extends State<LoginScreen>
 
   void _handlePhoneLogin() {
     Get.to(() => const PhoneLoginScreen());
+  }
+
+  void _handleGoogleLogin() async {
+    try {
+      await _authController.signInWithGoogle();
+    } catch (e) {
+      Get.snackbar('로그인 오류', '구글 로그인 중 오류가 발생했습니다.');
+    }
   }
 }

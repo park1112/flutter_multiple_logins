@@ -18,6 +18,7 @@ class AppTheme {
   // 소셜 로그인 색상
   static const Color naverColor = Color(0xFF03C75A);
   static const Color facebookColor = Color(0xFF1877F2);
+  static const Color googleColor = Color(0xFFDB4437); // 구글 레드 색상 추가
 
   // 라이트 테마
   static ThemeData lightTheme = ThemeData(

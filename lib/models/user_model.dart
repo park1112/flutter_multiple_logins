@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-enum LoginType { naver, facebook, phone, unknown }
+enum LoginType { naver, facebook, phone, unknown, google }
 
 class UserModel {
   final String uid;
@@ -82,6 +82,8 @@ class UserModel {
         return LoginType.facebook;
       case 'phone':
         return LoginType.phone;
+      case 'google':
+        return LoginType.google;
       default:
         return LoginType.unknown;
     }
