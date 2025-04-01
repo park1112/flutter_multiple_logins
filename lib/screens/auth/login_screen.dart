@@ -22,6 +22,8 @@ class _LoginScreenState extends State<LoginScreen>
   @override
   void initState() {
     super.initState();
+
+    // 애니메이션 컨트롤러 설정
     _animationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1200),
@@ -35,6 +37,13 @@ class _LoginScreenState extends State<LoginScreen>
     );
 
     _animationController.forward();
+
+    // 로딩 상태 강제 초기화
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_authController.isLoading.value) {
+        _authController.isLoading.value = false;
+      }
+    });
   }
 
   @override

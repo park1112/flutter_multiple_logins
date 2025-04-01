@@ -84,14 +84,24 @@ class _SplashWrapperState extends State<SplashWrapper> {
     _initializeApp();
   }
 
+// main.dart의 _initializeApp() 메서드 수정
   Future<void> _initializeApp() async {
     try {
       // 첫 실행 여부 확인
       SharedPreferences prefs = await SharedPreferences.getInstance();
       bool isFirstRun = prefs.getBool(AppConstants.keyIsFirstRun) ?? true;
 
+      // 로그인 상태 확인을 위한 시간 허용
+      await Future.delayed(const Duration(milliseconds: 500));
+
       // 로그인 상태 확인
       bool isLoggedIn = _authController.firebaseUser.value != null;
+
+      // 로딩 상태 명시적 초기화
+      _authController.isLoading.value = false;
+
+      // 위젯이 여전히 마운트되어 있는지 확인
+      if (!mounted) return;
 
       setState(() {
         _initialized = true;
@@ -109,6 +119,12 @@ class _SplashWrapperState extends State<SplashWrapper> {
       print('App initialization error: $e');
 
       // 오류 발생 시 로그인 화면으로 이동
+      // 로딩 상태 명시적 초기화
+      _authController.isLoading.value = false;
+
+      // 위젯이 여전히 마운트되어 있는지 확인
+      if (!mounted) return;
+
       setState(() {
         _initialized = true;
       });

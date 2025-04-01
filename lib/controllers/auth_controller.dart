@@ -220,6 +220,7 @@ class AuthController extends GetxController {
   }
 
 // 계정 삭제
+// auth_controller.dart 파일의 deleteAccount() 메서드 수정
   Future<void> deleteAccount() async {
     try {
       isLoading.value = true;
@@ -228,35 +229,38 @@ class AuthController extends GetxController {
       final String? userId = firebaseUser.value?.uid;
       if (userId == null) {
         Get.snackbar('오류', '로그인 정보를 찾을 수 없습니다.');
+        isLoading.value = false;
         return;
       }
 
-      // 2. 인증 정보 및 사용자 데이터 삭제 (FirestoreService.deleteUser 내부에서
-      //    프로필 이미지 삭제(삭제 보관함 처리)와 백업 저장이 진행됨)
+      // 2. 인증 정보 및 사용자 데이터 삭제
       await _authService.deleteUser(userId);
 
       // 3. 앱 내 사용자 정보 초기화
       userModel.value = null;
       firebaseUser.value = null;
+
+      // 4. SharedPreferences 데이터 삭제
       SharedPreferences prefs = await SharedPreferences.getInstance();
       await prefs.remove(AppConstants.keyUserData);
-
-      // 4. Firebase 인증 로그아웃 (예외 발생 시 catch하여 무시)
-      try {
-        await FirebaseAuth.instance.signOut();
-      } catch (signOutError) {
-        print('Firebase signOut error (무시): $signOutError');
-      }
 
       // 5. 모든 인증 토큰 및 자동 로그인 정보 삭제
       await _clearAllAuthTokens();
 
+      // 중요: 화면 전환 전에 로딩 상태 해제
+      isLoading.value = false;
+
+      // 7. 메시지 표시 및 화면 전환
       Get.snackbar('계정 삭제', '계정이 삭제되었습니다.');
+
+      // 8. GetX 컨트롤러 초기화
+      Get.delete<AuthController>(force: true);
+
+      // 9. 로그인 화면으로 이동 (로딩 상태 해제 후 실행)
       Get.offAll(() => const LoginScreen());
     } catch (e) {
-      Get.snackbar('오류', '계정 삭제 중 오류가 발생했습니다: $e');
-    } finally {
       isLoading.value = false;
+      Get.snackbar('오류', '계정 삭제 중 오류가 발생했습니다: $e');
     }
   }
 
